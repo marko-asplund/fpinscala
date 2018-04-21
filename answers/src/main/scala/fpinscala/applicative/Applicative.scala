@@ -5,6 +5,9 @@ import monads.Functor
 import state._
 import State._
 import monoids._
+import language.higherKinds
+import language.implicitConversions
+
 
 trait Applicative[F[_]] extends Functor[F] {
   // `map2` is implemented by first currying `f` so we get a function
@@ -66,9 +69,8 @@ trait Applicative[F[_]] extends Functor[F] {
   }
 
   def sequenceMap[K,V](ofa: Map[K,F[V]]): F[Map[K,V]] =
-    ofa.foldLeft(unit(Map[K,V]())) {
-      case (acc, (k, fv)) => apply(map(acc)(m =>
-        (n: Map[K,V]) => m ++ n))(map(fv)((v: V) => Map(k -> v)))
+    (ofa foldLeft unit(Map.empty[K,V])) { case (acc, (k, fv)) =>
+      map2(acc, fv)((m, v) => m + (k -> v))
     }
 
 }

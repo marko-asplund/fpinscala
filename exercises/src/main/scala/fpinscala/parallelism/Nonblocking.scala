@@ -2,6 +2,7 @@ package fpinscala.parallelism
 
 import java.util.concurrent.{Callable, CountDownLatch, ExecutorService}
 import java.util.concurrent.atomic.AtomicReference
+import language.implicitConversions
 
 object Nonblocking {
 
@@ -121,7 +122,7 @@ object Nonblocking {
      * through the implementation. What is the type of `p(es)`? What
      * about `t(es)`? What about `t(es)(cb)`?
      */
-    def choice[A](p: Par[Boolean])(f: Par[A], t: Par[A]): Par[A] =
+    def choice[A](p: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
       es => new Future[A] {
         def apply(cb: A => Unit): Unit =
           p(es) { b =>

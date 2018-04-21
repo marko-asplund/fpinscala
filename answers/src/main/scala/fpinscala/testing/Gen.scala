@@ -7,6 +7,8 @@ import fpinscala.parallelism.Par.Par
 import Gen._
 import Prop._
 import java.util.concurrent.{Executors,ExecutorService}
+import language.postfixOps
+import language.implicitConversions
 
 case class Prop(run: (MaxSize,TestCases,RNG) => Result) {
   def &&(p: Prop) = Prop {
@@ -261,7 +263,7 @@ object Gen {
   // or has no two consecutive elements `(a,b)` such that `a` is greater than `b`.
   val sortedProp = forAll(listOf(smallInt)) { l =>
     val ls = l.sorted
-    l.isEmpty || ls.tail.isEmpty || !l.zip(ls.tail).exists { case (a,b) => a > b }
+    l.isEmpty || ls.tail.isEmpty || !ls.zip(ls.tail).exists { case (a,b) => a > b }
   }
 
   object ** {
@@ -288,10 +290,14 @@ case class SGen[+A](g: Int => Gen[A]) {
   def apply(n: Int): Gen[A] = g(n)
 
   def map[B](f: A => B): SGen[B] =
-    SGen(g andThen (_ map f))
+    SGen { g(_) map f }
 
-  def flatMap[B](f: A => Gen[B]): SGen[B] =
-    SGen(g andThen (_ flatMap f))
+  def flatMap[B](f: A => SGen[B]): SGen[B] = {
+    val g2: Int => Gen[B] = n => {
+      g(n) flatMap { f(_).g(n) }
+    }
+    SGen(g2)
+  }
 
   def **[B](s2: SGen[B]): SGen[(A,B)] =
     SGen(n => apply(n) ** s2(n))
